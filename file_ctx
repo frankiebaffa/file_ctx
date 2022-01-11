@@ -1,0 +1,178 @@
+#!/bin/bash
+# =============================================================================
+# EXIT CODES
+# -----------------------------------------------------------------------------
+# 0: Success
+# 1: No mode passed
+# 2: No caller directory passed
+# 3: No type to parse passed
+# 4: Type to parse is invalid
+# 5: Duplicate entry attempted
+# 6: Invalid mode passed
+# 7: Invalid array argument
+# 8: No param string passed
+# =============================================================================
+# MODES
+# -----------------------------------------------------------------------------
+# The mode is passed as the first argument of the call
+# -----------------------------------------------------------------------------
+# --parse: Parses the context from a folder
+# --item:  Retrieves an item from a parsed array by a value
+# --param: Retrieves a parameter from an item
+# =============================================================================
+# FUNCTIONS
+function get_item_param {
+	param_string="$2"
+	if [[ -z "$param_string" ]]
+	then
+		echo "";
+		return;
+	fi
+	param=3;
+	if [[ "$2" == "--short" ]]
+	then
+		param=0;
+	elif [[ "$2" == "--long" ]]
+	then
+		param=1;
+	elif [[ "$2" == "--description" ]]
+	then
+		param=2;
+	fi
+	if [ $param -eq 3 ]
+	then
+		echo "";
+	else
+		IFS=':' read -ra params <<< "$1";
+		echo "${params[$param]}";
+		return;
+	fi
+}
+# RUNTIME
+if [[ -z "$1" ]]
+then
+	echo "";
+	exit 1;
+fi
+mode="$1";
+if [[ "$mode" == "--parse" ]]
+then
+	# Mode 1: Parse
+	# argument 2
+	caller_dir="$2";
+	if [[ -z "$caller_dir" ]]
+	then
+		echo "";
+		exit 2;
+	fi
+	# argument 3
+	type_to_parse="$3";
+	if [[ -z "$type_to_parse" ]]
+	then
+		echo "";
+		exit 3;
+	fi
+	parse_from_dir="";
+	if [[ "$type_to_parse" == "--flags" ]]
+	then
+		parse_from_dir="flags";
+	elif [[ "$type_to_parse" == "--options" ]]
+	then
+		parse_from_dir="options";
+	elif [[ "$type_to_parse" == "--codes" ]]
+	then
+		parse_from_dir="codes";
+	fi
+	if [[ -z "$parse_from_dir" ]]
+	then
+		exit 4;
+	fi
+	out_arr=();
+	for filename in $caller_dir/$parse_from_dir/*.txt
+	do
+		index=0;
+		short="";
+		long="";
+		desc="";
+		while read line
+		do
+			if [ $index -eq 0 ]
+			then
+				short="$line";
+				index=$((index+1));
+			elif [ $index -eq 1 ]
+			then
+				long="$line";
+				index=$((index+1));
+			elif [ $index -eq 2 ]
+			then
+				desc="$line";
+				index=0;
+			fi
+		done < "$filename";
+		item="$short:$long:$desc";
+		if [[ " ${out_arr[*]} " =~ " ${item} " ]]
+		then
+			exit 5;
+		fi
+		out_arr+=("$item");
+	done
+	echo "${out_arr[@]}";
+	exit 0;
+elif [[ "$mode" == "--item" ]]
+then
+	# Mode 2: Item
+	# argument 2
+	arr_string="$2";
+	if [[ -z "$arr_string" ]]
+	then
+		echo "";
+		exit 7;
+	fi
+	param_type="$3";
+	if [[ -z "$param_type" ]]
+	then
+		echo "";
+		exit 8;
+	fi
+	value_to_match="$4";
+	if [[ -z "$value_to_match" ]]
+	then
+		echo "";
+		exit 9;
+	fi
+	arr=("${arr_string[@]}");
+	# get item by parameter and type
+	for item in "${arr[@]}"
+	do
+		to_match="$(get_item_param "$item" "$param_type")";
+		if [[ "$to_match" == "$value_to_match" ]]
+		then
+			echo "$item";
+			exit 0;
+		fi
+	done
+	echo "";
+	exit 10;
+elif [[ "$mode" == "--param" ]]
+then
+	# Mode 3: Param
+	# argument 2
+	item="$2";
+	if [[ -z "$item" ]]
+	then
+		echo "";
+		exit 11;
+	fi
+	param_type="$3";
+	if [[ -z "$param_type" ]]
+	then
+		echo "";
+		exit 12;
+	fi
+	param="$(get_item_param "$item" "$param_type")";
+	echo "$param";
+	exit 0;
+fi
+echo "";
+exit 6;

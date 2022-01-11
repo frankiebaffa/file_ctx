@@ -59,18 +59,18 @@ if [[ "$mode" == "--parse" ]]
 then
 	# Mode 1: Parse
 	# argument 2
-	caller_dir="$2";
-	if [[ -z "$caller_dir" ]]
-	then
-		echo "";
-		exit 2;
-	fi
-	# argument 3
-	type_to_parse="$3";
+	type_to_parse="$2";
 	if [[ -z "$type_to_parse" ]]
 	then
 		echo "";
 		exit 3;
+	fi
+	# argument 3
+	caller_dir="$3";
+	if [[ -z "$caller_dir" ]]
+	then
+		echo "";
+		exit 2;
 	fi
 	parse_from_dir="";
 	if [[ "$type_to_parse" == "--flags" ]]
